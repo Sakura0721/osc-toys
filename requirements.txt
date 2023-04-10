@@ -1,9 +1,2 @@
-pyyaml
 bleak
-requests
-pysimplegui
-buttplug
-pyserial
-pybluez
-flask
-requests-oauthlib
+python-osc
