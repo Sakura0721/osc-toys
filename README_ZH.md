@@ -36,6 +36,7 @@ pip install -r requirements.txt
     - `COYOTE_ADDR_A` 和 `COYOTE_ADDR_B` ：绑定到通道A/B的OSC地址。
     - `VRC_HOST` 和 `VRC_OSC_PORT` ：VRC的OSC IP地址和端口。如果您不知道它是什么，请将其保留为默认值。
 - 找到一个支持OSC参数的Avatar，例如使用了 [VRCContactReceiver](https://docs.vrchat.com/docs/contacts#vrccontactreceiver) 的Avatar。
+    - 需要注意参数类型应该为 `float`。即需要使用类型为 [Proximity](https://docs.vrchat.com/docs/contacts#receiver) 的reveiver.
     - 如果您不知道这是什么，请找一个模型师/Avatar创作者来帮助您。
 - 启动VRC，然后运行main.py。与您的搭档一起享受吧！
 

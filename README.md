@@ -38,6 +38,7 @@ pip install -r requirements.txt
     - `COYOTE_ADDR_A` and `COYOTE_ADDR_B`: OSC address bind to channel A/B.
     - `VRC_HOST` and `VRC_OSC_PORT`: OSC ip address and port of VRC. If you have no idea what it is, leave it as default.
 - Find an avatar supports [OSC](https://docs.vrchat.com/docs/osc-overview) parameters, such as avatars enabled [VRCContactReceiver](https://docs.vrchat.com/docs/contacts#vrccontactreceiver).
+    - Note that the parameters should be `float`. I.e. [Proximity](https://docs.vrchat.com/docs/contacts#receiver) reveiver type.
     - If you don't know what it is, find a modeler/avatar-creater to help you.
 - Start VRC, and then run `main.py`. Enjoy it with your partner!
 
