@@ -66,4 +66,4 @@ If the program faild to connect to Coyote, try re-run it or re-run it after rebo
 
 ## Acknowledgements
 
-- Code of communication with Coyote is based on [GIFT](https://github.com/MinLL/GameInterfaceForToys). Thanks to [@MinLL](https://www.github.com/MinLL).
+- Code of communication with Coyote is based on [GIFT](https://github.com/MinLL/GameInterfaceForToys). Thanks to [@MinLL](https://www.github.com/MinLL) and [@inertaert](https://github.com/inertaert).
