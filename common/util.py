@@ -1,39 +1,47 @@
 from settings import WARN_ON_STACK_DUMP_SOUND
-if WARN_ON_STACK_DUMP_SOUND: import winsound
+
+if WARN_ON_STACK_DUMP_SOUND:
+    import winsound
+
 
 class colors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
 
 
 class FatalException(Exception):
     pass
 
+
 class ReloadException(FatalException):
     pass
+
 
 class ReloadToyEventModalException(Exception):
     pass
 
+
 def info(s):
-    print("[GameInterfaceForToys] [i] " +str(s))
+    print("[GameInterfaceForToys] [i] " + str(s))
+
 
 def success(s):
-    print( "[GameInterfaceForToys] [+] " + str(s))
+    print("[GameInterfaceForToys] [+] " + str(s))
+
 
 def fail(s):
     print("[GameInterfaceForToys] [-] " + str(s))
     # beep()
 
+
 def beep():
     print("\a")
-    if WARN_ON_STACK_DUMP_SOUND : winsound.PlaySound('SystemQuestion',winsound.SND_ASYNC)
-
-
+    if WARN_ON_STACK_DUMP_SOUND:
+        winsound.PlaySound("SystemQuestion", winsound.SND_ASYNC)
