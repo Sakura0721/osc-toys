@@ -211,8 +211,8 @@ class CoyoteInterface(Estim):
 
         Valid input range (int): 0 <= pow_[a|b] <= 2047
 
-        :param pow_a: Output power of channel a, if set to -1, the current power level is used
-        :param pow_b: Output power of channel b, if set to -1, the current power level is used
+        :param pow_a: Output power of channel a, if set to -1, the power level will not be changed
+        :param pow_b: Output power of channel b, if set to -1, the power level will not be changed
         """
         
         if pow_a < 0:
@@ -220,8 +220,14 @@ class CoyoteInterface(Estim):
         if pow_b < 0:
             pow_b = self.pow_b
             
+        if abs(pow_a - self.pow_a) < 10 and abs(pow_b - self.pow_b) < 10:
+            return
+
+        logging.info(f"set_pwm({pow_a}, {pow_b})")
         self.pow_a = pow_a
         self.pow_b = pow_b
+        
+        settings.CAN_UPDATE_POWER = False
         
         # "self.safe_mode == True" limits the amount of e-stim intensity to 37.5 % (768/2047).
         if self.safe_mode:
@@ -237,8 +243,8 @@ class CoyoteInterface(Estim):
             await self.device.write_gatt_char(self._pwm_ab2.uuid, message)
             # Read & confirm new values
             output = await self.device.read_gatt_char(self._pwm_ab2)
-            logging.info(
-                f"Wrote byte sequence to _pwm_ab2: {message}, confirmation: {output}")
+            # logging.info(
+            #     f"Wrote byte sequence to _pwm_ab2: {message}, confirmation: {output}")
         else:
             if self.safe_mode:
                 logging.error("Caution, safe mode is enabled.")
@@ -443,14 +449,19 @@ class CoyoteInterface(Estim):
 
         pattern_duration = self._calculate_pattern_duration(pattern)
 
-        last_power_check = int(time.time())
+        last_power_check = time.time()
 
-        end_time = int(time.time()) + int(duration / 1000)
-        cur_time = int(time.time())
+        end_time = time.time() + duration / 1000
+        cur_time = time.time()
+        last_time = time.time() - 0.1
         # Iterate over the pattern and send each value (ax, ay, az) to the device in succession
         while cur_time < end_time:
             for state in pattern:
-                cur_time = int(time.time())
+                cur_time = time.time()
+                if cur_time - last_time < 0.1:
+                    await asyncio.sleep(0.01)
+                    continue
+                    
                 # info("cur time = {}, end time = {}".format(cur_time, end_time))
                 if cur_time >= end_time:
                     info("Shock - Hit time limit, stopping")
@@ -459,11 +470,11 @@ class CoyoteInterface(Estim):
                     print("ret1")
                     return
                 # Check to see if power output has been reduced to zero once per second
-                if cur_time - last_power_check > 1:
+                if cur_time - last_power_check > 1.0:
                     if not await self.is_running():
                         print("ret2")
                         return
-                    last_power_check = int(time.time())
+                    last_power_check = time.time()
                 # unpack pattern values
                 ax, ay, az = state
 
@@ -475,12 +486,15 @@ class CoyoteInterface(Estim):
 
                 # Send message to bluetooth device
                 output = await self.device.write_gatt_char(characteristic, message)
+                last_time = time.time()
+                
+                settings.CAN_UPDATE_POWER = True
 
                 # Sleep to avoid spamming the device and causing "frame tearing."
                 # fixme: Might work worse than a flat time.sleep(0.1)?
                 # time_delta / 1000)  # Convert from milliseconds to seconds
                 # print("working")
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.01)
 
     async def is_running(self):
         if not self.is_connected:  # Process is shutting down.
@@ -494,8 +508,10 @@ class CoyoteInterface(Estim):
             await self.connect()
             return False
         # If power is 0, stop() has been called outside this function.
-        if output == bytearray(b'\x00\x00\x00'):
-            return False
+        # TODO: Need a better way to check if the device is still running.
+        # Because if the device is running, but the power is 0, this will return False.
+        # if output == bytearray(b'\x00\x00\x00'):
+        #     return False
         return True
 
     def convert_power_vibrate(self, strength: int):

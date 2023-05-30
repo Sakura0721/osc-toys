@@ -11,7 +11,8 @@ COYOTE_UID = "C9:9F:E4:2E:31:60"
 COYOTE_MULTIPLIER = 7.68
 # Enable or disable safe mode. This caps the max e-stim output of the device. Warning: Don't touch unless you know what you're doing!
 COYOTE_SAFE_MODE = True
-COYOTE_MAX_POWER = 200
+COYOTE_MAX_POWER_A = 300
+COYOTE_MAX_POWER_B = 300
 COYOTE_PATTERN = "vibrator_4"
 # OSC address bind to channel A.
 # The value of this address must be a float number between 0 and 1.
@@ -26,4 +27,32 @@ VRC_HOST = "127.0.0.1"
 # If you have no idea what it is, leave it as default.
 VRC_OSC_PORT = 9001
 
+# Window size of the moving average filter (in seconds).
+WINDOW_SIZE = 0.1
+
+#             ▲
+#             │
+#             │
+#             │                max_limit
+#         1.0 │               xx───────
+#             │              xx
+#             │             xx
+#             │            xx
+#             │           xx
+#             │          xx
+#   min_power │   ┌─────xx
+#             │   │       min_limit
+#             └───┴──────────────────────────►
+#             start_limit
+
+# When the average value of the signal is below this value, the power will be set to `0`.
+START_LIMIT = 0.05
+# When the average value of the signal is below this value, the power will be set to `min_power * COYOTE_MAX_POWER`.
+MIN_LIMIT = 0.2
+# When the average value of the signal is above this value, the power will be set to `1.0 * COYOTE_MAX_POWER`.
+MAX_LIMIT = 0.8
+# The minimum power rate of the e-stim device.
+MIN_POWER = 0.5
+
+CAN_UPDATE_POWER = True
 WARN_ON_STACK_DUMP_SOUND = True
