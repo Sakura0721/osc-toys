@@ -1,0 +1,73 @@
+name: Build-And-Release-Exe
+
+# Controls when the workflow will run
+on:
+  push:
+    tags:
+      - "**"
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Windows is currently the only platform this action supports
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+      # Check-out repository
+      - uses: actions/checkout@v3
+
+      # Setup Python
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11" # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          architecture: "x64" # optional x64 or x86. Defaults to x64 if not specified
+
+      # Install dependencies
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      # Build python script into a stand-alone exe
+      - uses: Nuitka/Nuitka-Action@main
+        with:
+          nuitka-version: main
+          script-name: main.py
+
+      # Build static frontend at `frontend/`
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: |
+          cd frontend
+          npm install
+          npm run build
+          npm run export
+
+      # Zip files
+      - run: |
+          mkdir osc-toys
+          mkdir osc-toys/frontend
+          cp build/main.exe osc-toys/osc-toys.exe
+          cp settings.yaml osc-toys/settings.yaml
+          cp -r frontend/out osc-toys/frontend/out
+          cp -r data osc-toys/data
+          Compress-Archive -Path "osc-toys" -Destination release_windows_x64.zip
+
+      # Uploads artifact
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: release_windows_x64.zip
+          path: osc-toys
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release_windows_x64.zip
