@@ -18,6 +18,8 @@ jobs:
       matrix:
         node-version: [16.x]
 
+    permissions:
+      contents: write
     steps:
       # Check-out repository
       - uses: actions/checkout@v3
@@ -70,4 +72,5 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           files: release_windows_x64.zip
