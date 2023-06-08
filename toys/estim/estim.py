@@ -1,3 +1,4 @@
+from typing import Dict, Any
 from toys.base import Toy, FEATURE_ESTIM
 import json
 import io
@@ -6,6 +7,8 @@ from common.util import *
 
 
 class Estim(Toy):
+    patterns: Dict[str, Any]
+
     def load_patterns(self):
         with open("data/estim/pattern_dict.json") as pf:
             patterns = json.loads(pf.read())
@@ -15,7 +18,7 @@ class Estim(Toy):
                     with open("data/estim/patterns/{}".format(pattern)) as psf:
                         pattern_list.extend(json.loads(psf.read()))
                 patterns[k] = pattern_list
-        patterns[""] = [
+        patterns["default"] = [
             [
                 [10, 90, 10]
             ],  # Default pattern - simple, one-state pattern of 10 ms pulse, 90 ms pause, amplitude 10

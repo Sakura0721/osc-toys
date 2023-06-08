@@ -49,8 +49,10 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 Licensed under the MIT License, (c) 2022 S. F. S.
 """
 
+import traceback
 from typing import Tuple
 import bleak  # bluetooth functionality
+
 # custom functionality for encoding communication to the bluetooth device
 import toys.estim.coyote.dg_encoding as dg_encoding
 import logging
@@ -78,7 +80,17 @@ class CoyoteInterface(Estim):
                             what you are doing! See self.set_pwm() for implementation details.
     """
 
-    def __init__(self, device_uid="C9:9F:E4:2E:31:60", power_multiplier=7.68, default_channel="a", safe_mode=True):
+    pattern_name_a: str
+    pattern_name_b: str
+    switch_pattern: bool = False
+
+    def __init__(
+        self,
+        device_uid="C9:9F:E4:2E:31:60",
+        power_multiplier=7.68,
+        default_channel="a",
+        safe_mode=True,
+    ):
         """
         The constructor for the CoyoteInterface class.
 
@@ -88,60 +100,16 @@ class CoyoteInterface(Estim):
         """
         super().__init__("coyote")
         self.battery = -1
-        self.pow_a=1
-        self.pow_b=1
+        self.pow_a = 1
+        self.pow_b = 1
         # Set bluetooth device uid and device reference
-        if device_uid:
+        if device_uid is not None and device_uid != "":
             self.device_uid = device_uid
-            self.device = bleak.BleakClient(self.device_uid)
+            self.device = bleak.BleakClient(self.device_uid, timeout=40)
         else:
             # attempt to find device automatically if device_uid left blank.
             print("Coyote UID was left blank. Trying to find the device automatically.")
-
-            async def search_for_device():
-                # BLEAK bluetooth device placeholders
-                self.scanner = None
-                self.device = None
-                self.device_uid = None
-                self.device_alias = "D-LAB ESTIM01"
-
-                print("Scanning for Bluetooth devices.")
-                self.scanner = bleak.BleakScanner()
-                bluetooth_devices = await self.scanner.discover(timeout=10)
-
-                # Search for Coyote device with name/alias "DG-LAB ESTIM01".
-                # on success, order the list to end with the devices with the strongest signal.
-                # If there are several active DG-Lab Coyote devices active simultaneously for pairing,
-                # then this will ensure that the code defaults to the device closest to the Bluetooth adapter.
-                # todo: Allow for choosing between several e-stim devices, if present simultaneously.
-                if bluetooth_devices:
-                    # Sort in descending order of signal strength
-                    bluetooth_devices.sort(
-                        key=lambda device: device.rssi, reverse=True)
-                    logging.info(bluetooth_devices)
-
-                    # Look for the DG-Lab Coyote device among the detected devices.
-                    for bluetooth_device in bluetooth_devices:
-                        # Is this the Coyote device?
-                        if bluetooth_device.name == self.device_alias:
-                            # If we've already found one Coyote device, skip additional devices with same alias.
-                            if self.device_uid:
-                                print(
-                                    f"WARNING: More than one Coyote was found. Skipping subsequent device: {bluetooth_device.name}")
-                            else:
-                                # Save UUID of found device to self.device_uid and instantiate BLEAK as normal.
-                                self.device_uid = bluetooth_device.address
-                                print(f"Coyote found! UUID: {self.device_uid}")
-                                self.device = bleak.BleakClient(
-                                    self.device_uid)
-                    if not self.device_uid:
-                        raise RuntimeError(
-                            "BLEAK failed to find the DG-Lab Coyote automatically.")
-                else:
-                    raise RuntimeError(
-                        "BLEAK failed to find any Bluetooth devices.")
-
-            asyncio.run(search_for_device())
+            self.device = None
 
         # Bluetooth characteristic placeholders; populated in self.connect()
         self._battery_level = None  # battery level
@@ -214,21 +182,21 @@ class CoyoteInterface(Estim):
         :param pow_a: Output power of channel a, if set to -1, the power level will not be changed
         :param pow_b: Output power of channel b, if set to -1, the power level will not be changed
         """
-        
+
         if pow_a < 0:
             pow_a = self.pow_a
         if pow_b < 0:
             pow_b = self.pow_b
-            
+
         if abs(pow_a - self.pow_a) < 10 and abs(pow_b - self.pow_b) < 10:
             return
 
         logging.info(f"set_pwm({pow_a}, {pow_b})")
         self.pow_a = pow_a
         self.pow_b = pow_b
-        
+
         settings.CAN_UPDATE_POWER = False
-        
+
         # "self.safe_mode == True" limits the amount of e-stim intensity to 37.5 % (768/2047).
         if self.safe_mode:
             in_valid_range = 0 <= pow_a <= 768 and 0 <= pow_b <= 768
@@ -249,10 +217,12 @@ class CoyoteInterface(Estim):
             if self.safe_mode:
                 logging.error("Caution, safe mode is enabled.")
                 logging.error(
-                    f"Input values pow_a ({pow_a}) & pow_b ({pow_b}) must both be within the range 0-768!")
+                    f"Input values pow_a ({pow_a}) & pow_b ({pow_b}) must both be within the range 0-768!"
+                )
             else:
                 logging.error(
-                    f"Input values pow_a ({pow_a}) & pow_b ({pow_b}) must both be within the range 0-2047!")
+                    f"Input values pow_a ({pow_a}) & pow_b ({pow_b}) must both be within the range 0-2047!"
+                )
 
     def _calculate_pattern_duration(self, pattern: list) -> int:
         """
@@ -287,6 +257,48 @@ class CoyoteInterface(Estim):
     # User-facing functions
     #
 
+    async def search_for_device(self):
+        # BLEAK bluetooth device placeholders
+        self.scanner = None
+        self.device = None
+        self.device_uid = None
+        self.device_alias = "D-LAB ESTIM01"
+
+        print("Scanning for Bluetooth devices.")
+        self.scanner = bleak.BleakScanner()
+        bluetooth_devices = await self.scanner.discover(timeout=10)
+
+        # Search for Coyote device with name/alias "DG-LAB ESTIM01".
+        # on success, order the list to end with the devices with the strongest signal.
+        # If there are several active DG-Lab Coyote devices active simultaneously for pairing,
+        # then this will ensure that the code defaults to the device closest to the Bluetooth adapter.
+        # todo: Allow for choosing between several e-stim devices, if present simultaneously.
+        if bluetooth_devices:
+            # Sort in descending order of signal strength
+            bluetooth_devices.sort(key=lambda device: device.rssi, reverse=True)
+            logging.info(bluetooth_devices)
+
+            # Look for the DG-Lab Coyote device among the detected devices.
+            for bluetooth_device in bluetooth_devices:
+                # Is this the Coyote device?
+                if bluetooth_device.name == self.device_alias:
+                    # If we've already found one Coyote device, skip additional devices with same alias.
+                    if self.device_uid:
+                        print(
+                            f"WARNING: More than one Coyote was found. Skipping subsequent device: {bluetooth_device.name}"
+                        )
+                    else:
+                        # Save UUID of found device to self.device_uid and instantiate BLEAK as normal.
+                        self.device_uid = bluetooth_device.address
+                        print(f"Coyote found! UUID: {self.device_uid}")
+                        self.device = bleak.BleakClient(self.device_uid)
+            if not self.device_uid:
+                raise RuntimeError(
+                    "BLEAK failed to find the DG-Lab Coyote automatically."
+                )
+        else:
+            raise RuntimeError("BLEAK failed to find any Bluetooth devices.")
+
     async def connect(self, retries: int = 10):
         """
         Connect to the device and register characteristics.
@@ -304,11 +316,13 @@ class CoyoteInterface(Estim):
                     self.is_connected = await self.device.connect()
                     print("Connected!")
                     break
-                except (asyncio.TimeoutError, asyncio.CancelledError, bleak.exc.BleakError) as e:
+                except Exception as e:
                     # Overwrite generic ConnectionError with actual exception
                     saved_exception = e
+                    print(traceback.format_exc())
                     logging.error(
-                        f"Caught TimeoutError or CancelledError exception. Retrying... {e}")
+                        f"Caught TimeoutError or CancelledError exception. Retrying... {type(e)}: {e}"
+                    )
                     self.is_connected = False
 
         if not self.device.is_connected:
@@ -322,7 +336,7 @@ class CoyoteInterface(Estim):
         # device.services.characteristics (list)
 
         logging.info("Getting services...")
-        services = await self.device.get_services()
+        services = self.device.services
         # convert from async iterator to list
         services = [service for service in services]
 
@@ -347,7 +361,6 @@ class CoyoteInterface(Estim):
                         self._pwm_ab2 = characteristic
 
                     if characteristic.uuid == "955a1505-0fe2-f5aa-a094-84b8d4f3e8ad":
-
                         # logging.info("found channel A characteristic: ", characteristic.uuid)
 
                         # Caution: xxxx1505/PWM_A34 actually maps to channel b. Switch automatically if
@@ -358,7 +371,6 @@ class CoyoteInterface(Estim):
                             self._pwm_a34 = characteristic
 
                     if characteristic.uuid == "955a1506-0fe2-f5aa-a094-84b8d4f3e8ad":
-
                         # logging.info("found channel B characteristic: ", characteristic.uuid)
 
                         # Caution: xxxx1506/PWM_B34 actually maps to channel a. Switch automatically if
@@ -385,7 +397,8 @@ class CoyoteInterface(Estim):
 
         # write output power = 0 to device
         logging.info(
-            "Attempting to communicate command 'set channels strength to 0' to device...")
+            "Attempting to communicate command 'set channels strength to 0' to device..."
+        )
         message = bytes([0, 0, 0])
         logging.info(f"Writing {message} to {self._pwm_ab2.uuid}")
 
@@ -393,22 +406,22 @@ class CoyoteInterface(Estim):
         output = await self.device.write_gatt_char(self._pwm_ab2.uuid, message)
 
         # Read output power from device
-        logging.info(
-            f"Reading current strength value from {self._pwm_ab2.uuid}")
+        logging.info(f"Reading current strength value from {self._pwm_ab2.uuid}")
         output = await self.device.read_gatt_char(self._pwm_ab2)
 
         if output == message:
             logging.info("Read: channels strength == {}".format(output))
             print("Device read/write functionality confirmed.\nReady!")
         else:
-            logging.error(
-                "Device read/write functionality could not be confirmed.")
+            logging.error("Device read/write functionality could not be confirmed.")
 
     async def shutdown(self):
         await self.disconnect()
 
     async def disconnect(self):
         """Disconnect device."""
+        if not self.is_connected:
+            return
 
         print("Disconnecting...")
         self.stop_signal = True
@@ -418,7 +431,22 @@ class CoyoteInterface(Estim):
         if not self.device.is_connected:
             print("Disconnected!")
 
-    async def signal(self, power: int, pattern: list, duration: int, channel: str = "a"):
+    async def get_bettery_level(self) -> int:
+        """Get battery level."""
+
+        if not self.is_connected:
+            return 0
+
+        battery_level = await self.device.read_gatt_char(self._battery_level.uuid)
+
+        # Convert from bytearray to hex to decimal
+        battery_level_dec = int(battery_level.hex(), 16)
+        self.battery = battery_level_dec
+        return battery_level_dec
+
+    async def signal(
+        self, power: int, pattern_name: str, duration: int, channel: str = "a"
+    ):
         """
         Send to device an e-stim pattern on channel a or b at a given power for a given duration.
 
@@ -447,7 +475,11 @@ class CoyoteInterface(Estim):
         # If the pattern is way longer than the given duration, just run the pattern once. I don't know whether this
         # will be a big issue, to be honest.
 
-        pattern_duration = self._calculate_pattern_duration(pattern)
+        if channel == "a":
+            self.pattern_name_a = pattern_name
+        else:
+            self.pattern_name_b = pattern_name
+        # pattern_duration = self._calculate_pattern_duration(ci.patterns[pattern_name])
 
         last_power_check = time.time()
 
@@ -456,12 +488,18 @@ class CoyoteInterface(Estim):
         last_time = time.time() - 0.1
         # Iterate over the pattern and send each value (ax, ay, az) to the device in succession
         while cur_time < end_time:
-            for state in pattern:
+            pattern_name = (
+                self.pattern_name_a if channel == "a" else self.pattern_name_b
+            )
+            self.switch_pattern = False
+            for state in self.patterns[pattern_name]:
+                if self.switch_pattern:
+                    break
                 cur_time = time.time()
                 if cur_time - last_time < 0.1:
                     await asyncio.sleep(0.01)
                     continue
-                    
+
                 # info("cur time = {}, end time = {}".format(cur_time, end_time))
                 if cur_time >= end_time:
                     info("Shock - Hit time limit, stopping")
@@ -479,7 +517,9 @@ class CoyoteInterface(Estim):
                 ax, ay, az = state
 
                 # Determine duration of state (ms)
-                time_delta = ax + ay  # consists of sum of pulse duration and pause duration
+                time_delta = (
+                    ax + ay
+                )  # consists of sum of pulse duration and pause duration
 
                 # Encode pattern
                 message = dg_encoding.encode_pattern(ax, ay, az)
@@ -487,7 +527,7 @@ class CoyoteInterface(Estim):
                 # Send message to bluetooth device
                 output = await self.device.write_gatt_char(characteristic, message)
                 last_time = time.time()
-                
+
                 settings.CAN_UPDATE_POWER = True
 
                 # Sleep to avoid spamming the device and causing "frame tearing."
@@ -517,8 +557,8 @@ class CoyoteInterface(Estim):
     def convert_power_vibrate(self, strength: int):
         min_power = int(settings.COYOTE_MIN_POWER)
         max_power = 768
-        vibrateRange = (100 - 0)
-        stimRange = (max_power - min_power)
+        vibrateRange = 100 - 0
+        stimRange = max_power - min_power
         # cast float to integer for compatibility with func.
         return int((((strength - 0) * stimRange) / vibrateRange) + min_power)
 
@@ -530,8 +570,14 @@ class CoyoteInterface(Estim):
         :param strength: Vibration strength (0 <= x <= 100).
         :param pattern: The pattern to shock with.
         """
-        info("duration = " + str(duration) + ", strength=" +
-             str(strength) + ", pattern=" + pattern)
+        info(
+            "duration = "
+            + str(duration)
+            + ", strength="
+            + str(strength)
+            + ", pattern="
+            + pattern
+        )
         # Vibration already in progress
         if await self.is_running():
             await self.stop()
@@ -543,11 +589,13 @@ class CoyoteInterface(Estim):
             fail("Pattern {} not found - Using default")
             pattern = ""
         pattern = random.choice(self.patterns[pattern])
-        await self.signal(power=self.convert_power_vibrate(strength),
-                          # todo: Different patterns corresponding to in-game events.
-                          pattern=pattern,
-                          duration=(duration * 1000),
-                          channel="a")  # [toy['id'] for toy in toys])
+        await self.signal(
+            power=self.convert_power_vibrate(strength),
+            # todo: Different patterns corresponding to in-game events.
+            pattern=pattern,
+            duration=(duration * 1000),
+            channel="a",
+        )  # [toy['id'] for toy in toys])
         # Set power back to zero after event is done.
         await self.stop()
 
@@ -557,6 +605,8 @@ class CoyoteInterface(Estim):
 
         todo: Interrupt-based stop command.
         """
+        if not self.is_connected:
+            return
         self.stop_signal = True
         await self.set_pwm(0, 0)
 
@@ -566,17 +616,17 @@ class CoyoteInterface(Estim):
     def get_toys(self):
         toy_a = {
             "name": "DG-Lab",
-            "interface": self.properties['name'],
+            "interface": self.properties["name"],
             "id": "a",
             "battery": self.battery,
-            "enabled": True
+            "enabled": True,
         }
         toy_b = copy.copy(toy_a)
-        toy_b['id'] = "b"
-        toy_b['name'] = "DG-Lab (B)"
+        toy_b["id"] = "b"
+        toy_b["name"] = "DG-Lab (B)"
 
         return {
-            toy_a['name']: toy_a  # ,
+            toy_a["name"]: toy_a  # ,
             # toy_b['name']: toy_b
         }
 
@@ -587,10 +637,12 @@ if __name__ == "__main__":
     # enable INFO level of logging
     logging.basicConfig(level=logging.INFO)
 
-    ci = CoyoteInterface(device_uid="C1:A9:D8:0C:CB:1D",  # These arguments are identical to the class defaults and
-                         # are for demonstration only.
-                         power_multiplier=1.28,
-                         safe_mode=True)
+    ci = CoyoteInterface(
+        device_uid="C1:A9:D8:0C:CB:1D",  # These arguments are identical to the class defaults and
+        # are for demonstration only.
+        power_multiplier=1.28,
+        safe_mode=True,
+    )
 
     # connect to device
     ci.connect(retries=10)
