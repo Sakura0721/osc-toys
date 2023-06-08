@@ -1,4 +1,22 @@
-# OSC-Toys
+<div align="center" id="top">
+  <img width="200" src="images/logo.svg" alt="OSC-Toys Logo" />
+</div>
+
+<h1 align="center">OSC-Toys</h1>
+
+<p align="center">
+  <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Sakura0721/osc-toys/release-exe.yaml">
+
+  <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/Sakura0721/osc-toys?style=social">
+
+  <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Sakura0721/osc-toys/total">
+
+  <img alt="GitHub" src="https://img.shields.io/github/license/Sakura0721/osc-toys">
+
+  <img alt="Discord" src="https://img.shields.io/discord/1091699221226328165">
+</p>
+
+## 简介
 
 该项目使用 OSC 将蓝牙玩具集成到 VRChat Avatar 中。
 
@@ -85,6 +103,12 @@ TODO：更好的文档。
   - 连接质量问题由许多原因引起，例如设备距离计算机太远，或者周围有太多蓝牙设备。请尝试将设备移近计算机，或将计算机移至蓝牙设备较少的地方。
 - 输出气昂都变化不平滑或有延迟。
   - 经测试，当`WINDOW_SIZE = 0.1`时，程序可以正常工作，即程序将每 0.1 秒更新一次玩具的强度。此时的体感延迟在 150 毫秒到 200 毫秒之间。如果您想使更新更平滑，则可以尝试减小`WINDOW_SIZE`的值。但是当值太小时，郊狼设备可能无法处理它（强度更新请求太频繁），更改将被延迟。因此，您应该找到一个平衡点。
+
+
+## 联系方式
+
+[OSC-Toys Discord 服务器](https://discord.gg/5HRgXNzCBP)
+
 
 ## Todos
 

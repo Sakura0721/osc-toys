@@ -1,4 +1,22 @@
-# OSC-Toys
+<div align="center" id="top">
+  <img width="200" src="images/logo.svg" alt="OSC-Toys Logo" />
+</div>
+
+<h1 align="center">OSC-Toys</h1>
+
+<p align="center">
+  <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Sakura0721/osc-toys/release-exe.yaml">
+
+  <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/Sakura0721/osc-toys?style=social">
+
+  <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Sakura0721/osc-toys/total">
+
+  <img alt="GitHub" src="https://img.shields.io/github/license/Sakura0721/osc-toys">
+
+  <img alt="Discord" src="https://img.shields.io/discord/1091699221226328165">
+</p>
+
+## Introduction
 
 [中文](https://github.com/Sakura0721/osc-toys/blob/master/README_ZH.md)
 
@@ -87,7 +105,11 @@ E-stim patterns are listed under the `data/estim/pattern_dict.json` file, and th
   - If the program faild to connect to Coyote, try re-run it or re-run it after reboot bluetooth of your computer. Notices that you should run the program when the light of Coyote is NOT `white`. If the light is `white`, it means the device is in pairing mode, and the program can't connect to it.
   - The connection quality issue is caused by many reasons, such as the device is too far from your computer, or there are too many bluetooth devices around you. Try to move your device closer to your computer, or move your computer to a place with less bluetooth devices.
 - The change of strength is not smooth or with latency.
-  - As tested, the program works fine when `WINDOW_SIZE = 0.1`, i.e. the program will update the strength of toys every 0.1 seconds. If you want to make the change smoother, you can try to decrease the value of `WINDOW_SIZE`. But when the value is too small, the Coyote device may not be able to handle it (too many power update request), and the change will be delayed. So you should find a balance.
+  - As tested, the program works fine when `window_size = 0.1`, i.e. the program will update the strength of toys every 0.1 seconds. If you want to make the change smoother, you can try to decrease the value of `window_size`. But when the value is too small, the Coyote device may not be able to handle it (too many power update request), and the change will be delayed. So you should find a balance.
+
+## Contact
+
+[OSC-Toys Official Discord Server](https://discord.gg/5HRgXNzCBP)
 
 ## Todos
 
