@@ -1,6 +1,7 @@
 can_update_power: true
 coyote_addr_a: /avatar/parameters/EarLDis
 coyote_addr_b: /avatar/parameters/EarRDis
+coyote_connect_timeout: 40
 coyote_max_power_a: 300
 coyote_max_power_b: 300
 coyote_multiplier: 7.68

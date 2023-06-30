@@ -180,7 +180,7 @@ async def start_coyote(req: StartRequest, background_tasks: BackgroundTasks):
     )
     if ci.device is None:
         await ci.search_for_device()
-    await ci.connect(retries=10)
+    await ci.connect(retries=3)
     background_tasks.add_task(main)
     return {"msg": "starting"}
 
