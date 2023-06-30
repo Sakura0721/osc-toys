@@ -74,6 +74,8 @@ class Settings(BaseModel):
     # OSC address bind to channel B.
     # The value of this address must be a float number between 0 and 1.
     coyote_addr_b: str = "/avatar/parameters/EarRDis"
+    # bluetooth connection timeout (in seconds) of coyote
+    coyote_connect_timeout: int = 40
 
     # Host ip of VRChat client.
     vrc_host: str = "127.0.0.1"

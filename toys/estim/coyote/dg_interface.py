@@ -62,7 +62,7 @@ from toys.base import FEATURE_ESTIM
 from toys.estim.estim import Estim
 import random
 from common.util import *
-import settings
+from settings import settings
 import copy
 
 
@@ -105,7 +105,9 @@ class CoyoteInterface(Estim):
         # Set bluetooth device uid and device reference
         if device_uid is not None and device_uid != "":
             self.device_uid = device_uid
-            self.device = bleak.BleakClient(self.device_uid, timeout=40)
+            self.device = bleak.BleakClient(
+                self.device_uid, timeout=settings.coyote_connect_timeout
+            )
         else:
             # attempt to find device automatically if device_uid left blank.
             print("Coyote UID was left blank. Trying to find the device automatically.")
@@ -195,7 +197,7 @@ class CoyoteInterface(Estim):
         self.pow_a = pow_a
         self.pow_b = pow_b
 
-        settings.CAN_UPDATE_POWER = False
+        settings.can_update_power = False
 
         # "self.safe_mode == True" limits the amount of e-stim intensity to 37.5 % (768/2047).
         if self.safe_mode:
@@ -291,7 +293,9 @@ class CoyoteInterface(Estim):
                         # Save UUID of found device to self.device_uid and instantiate BLEAK as normal.
                         self.device_uid = bluetooth_device.address
                         print(f"Coyote found! UUID: {self.device_uid}")
-                        self.device = bleak.BleakClient(self.device_uid)
+                        self.device = bleak.BleakClient(
+                            self.device_uid, timeout=settings.coyote_connect_timeout
+                        )
             if not self.device_uid:
                 raise RuntimeError(
                     "BLEAK failed to find the DG-Lab Coyote automatically."
@@ -299,7 +303,7 @@ class CoyoteInterface(Estim):
         else:
             raise RuntimeError("BLEAK failed to find any Bluetooth devices.")
 
-    async def connect(self, retries: int = 10):
+    async def connect(self, retries: int = 3):
         """
         Connect to the device and register characteristics.
 
@@ -324,6 +328,7 @@ class CoyoteInterface(Estim):
                         f"Caught TimeoutError or CancelledError exception. Retrying... {type(e)}: {e}"
                     )
                     self.is_connected = False
+                    self.device._backend._timeout *= 2
 
         if not self.device.is_connected:
             # raise ConnectionError("Failed to connect to bluetooth device")
@@ -528,7 +533,7 @@ class CoyoteInterface(Estim):
                 output = await self.device.write_gatt_char(characteristic, message)
                 last_time = time.time()
 
-                settings.CAN_UPDATE_POWER = True
+                settings.can_update_power = True
 
                 # Sleep to avoid spamming the device and causing "frame tearing."
                 # fixme: Might work worse than a flat time.sleep(0.1)?
@@ -555,7 +560,7 @@ class CoyoteInterface(Estim):
         return True
 
     def convert_power_vibrate(self, strength: int):
-        min_power = int(settings.COYOTE_MIN_POWER)
+        min_power = 1
         max_power = 768
         vibrateRange = 100 - 0
         stimRange = max_power - min_power
