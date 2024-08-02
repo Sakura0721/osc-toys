@@ -103,18 +103,29 @@ def coyote_handler_a(addr, args, dis):
     """
     global param_queue_a, last_time_a, cur_time_a
     cur_time_a = time.time()
-    # print("A: [{0}] ~ {1}".format(addr, dis))
+    print("A: [{0}] ~ {1}".format(addr, dis))
 
-    if dis < 0.1:
+    if (type(dis) == bool and dis == False):
+        loop = asyncio.get_event_loop()
+        asyncio.ensure_future(ci.set_pwm(1, -1), loop=loop)
+        return
+    if (type(dis) == bool and dis == True):
+        loop = asyncio.get_event_loop()
+        asyncio.ensure_future(ci.set_pwm(int(settings.coyote_max_power_a), -1), loop=loop)
+        return
+    if (dis < 0.1 and type(dis) != bool):
         loop = asyncio.get_event_loop()
         asyncio.ensure_future(ci.set_pwm(1, -1), loop=loop)
         return
     if cur_time_a - last_time_a > settings.window_size:
         last_time_a = time.time()
-        if len(param_queue_a) == 0 or not settings.can_update_power:
+        if (len(param_queue_a) == 0 and type(dis) != bool) or not settings.can_update_power:
             param_queue_a.append(dis)
             return
-        s = get_avg(param_queue_a)
+        if len(param_queue_a) != 0:
+            s = get_avg(param_queue_a)
+        else:
+            s = 0
         loop = asyncio.get_event_loop()
         if s < 0.1:
             asyncio.ensure_future(ci.set_pwm(1, -1), loop=loop)
@@ -134,18 +145,29 @@ def coyote_handler_b(addr, args, dis):
     """
     global param_queue_b, last_time_b, cur_time_b
     cur_time_b = time.time()
-    # print("B: [{0}] ~ {1}".format(addr, dis))
+    print("B: [{0}] ~ {1}".format(addr, dis))
 
-    if dis < 0.1:
+    if (type(dis) == bool and dis == False):
+        loop = asyncio.get_event_loop()
+        asyncio.ensure_future(ci.set_pwm(-1, 1), loop=loop)
+        return
+    if (type(dis) == bool and dis == True):
+        loop = asyncio.get_event_loop()
+        asyncio.ensure_future(ci.set_pwm(-1, int(settings.coyote_max_power_b)), loop=loop)
+        return
+    if (dis < 0.1 and type(dis) != bool):
         loop = asyncio.get_event_loop()
         asyncio.ensure_future(ci.set_pwm(-1, 1), loop=loop)
         return
     if cur_time_b - last_time_b > settings.window_size:
         last_time_b = time.time()
-        if len(param_queue_b) == 0 or not settings.can_update_power:
+        if (len(param_queue_b) == 0 and type(dis) != bool) or not settings.can_update_power:
             param_queue_b.append(dis)
             return
-        s = get_avg(param_queue_b)
+        if len(param_queue_a) != 0:
+            s = get_avg(param_queue_b)
+        else:
+            s = 0
         loop = asyncio.get_event_loop()
         if s < 0.1:
             asyncio.ensure_future(ci.set_pwm(-1, 1), loop=loop)
